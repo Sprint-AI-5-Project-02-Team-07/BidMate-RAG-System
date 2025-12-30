@@ -18,28 +18,35 @@ def load_rfp_documents(config: dict):
 
     for _, row in df.iterrows():
         original_name = str(row['파일명'])
-        
-        # 파일명 매핑
         base_name = os.path.splitext(original_name)[0]
         json_file_name = f"{base_name}_parsed.json"
         json_path = os.path.join(json_folder, json_file_name)
         
-        # --- [개선] 메타데이터 확장 및 타입 안전 처리 ---
+        # --- [안전한 타입 변환 로직] ---
         try:
             budget_val = float(row.get('사업 금액', 0))
         except:
             budget_val = 0.0
 
+        # 공고 차수: 1.0 -> 1 로 변환
+        try:
+            round_val = int(float(row.get('공고 차수', 0)))
+        except:
+            round_val = 0
+            
         base_metadata = {
             "source": original_name,
-            "announcement_id": str(row.get('공고 번호', "Unknown")), # [추가] 공고 번호
+            "announcement_id": str(row.get('공고 번호', "Unknown")),
+            "round": round_val,  # [추가] 공고 차수
             "project_name": row.get('사업명', "Unknown"),
             "organization": row.get('발주 기관', "Unknown"),
-            "budget": budget_val, # [개선] Float 변환
-            "deadline": str(row.get('입찰 참여 마감일', "")), # [확인] 날짜 필터링용
-            "summary": str(row.get('사업 요약', "")), # [추가] 사업 요약 (문맥 파악용)
+            "budget": budget_val,
+            "pub_date": str(row.get('공개 일자', "")),      # [추가] 공개 일자
+            "start_date": str(row.get('입찰 참여 시작일', "")), # [추가] 시작일
+            "deadline": str(row.get('입찰 참여 마감일', "")),
+            "summary": str(row.get('사업 요약', "")),
         }
-        # ---------------------------------------------
+        # -----------------------------
 
         # 1. JSON 로드
         loaded = False
@@ -54,7 +61,6 @@ def load_rfp_documents(config: dict):
                     
                     if not content.strip(): continue
                         
-                    # 페이지별 메타데이터
                     page_metadata = base_metadata.copy()
                     page_metadata['page'] = page_num
                     
