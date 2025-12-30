@@ -9,5 +9,5 @@ process:
 
 path:
   csv_file: "data/data_list.csv"
-  files_folder: "data/files"
+  files_folder: "data/parsed_json"
   vector_db: "vector_db/rfp_index"

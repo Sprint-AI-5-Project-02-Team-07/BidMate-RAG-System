@@ -11,6 +11,7 @@ dependencies = [
     "langchain-openai>=1.1.6",
     "langchain-teddynote>=0.5.4",
     "pandas>=2.3.3",
+    "pypdf>=6.5.0",
     "python-dotenv>=1.2.1",
     "pywin32>=311",
 ]
