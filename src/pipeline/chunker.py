@@ -7,11 +7,14 @@ from typing import List, Dict, Optional, Tuple
 # =========================
 # 설정(필요시 조정)
 # =========================
-MAX_CHARS_PER_CHUNK = 4500     # 임베딩/LLM 컨텍스트에 맞게 조절
-MIN_CHARS_PER_CHUNK = 400      # 너무 짧은 조각 합치기 기준
-SOFT_SPLIT_MAX_CHARS = 2200    # 아주 긴 chunk를 추가로 부드럽게 쪼갤 때 기준
+# =========================
+# 설정(필요시 조정)
+# =========================
+MAX_CHARS_PER_CHUNK = 1000     # 임베딩/LLM 컨텍스트에 맞게 조절 (Reduced from 4500)
+MIN_CHARS_PER_CHUNK = 200      # 너무 짧은 조각 합치기 기준 (Reduced from 400)
+SOFT_SPLIT_MAX_CHARS = 1000    # 아주 긴 chunk를 추가로 부드럽게 쪼갤 때 기준
 DOT_RATIO_TH = 0.35            # 점선 비율 임계치 (Cleaning)
-MIN_TEXT_LEN_CLEAN = 50        # Cleaning 단계 최소 길이
+MIN_TEXT_LEN_CLEAN = 30        # Cleaning 단계 최소 길이 (Reduced from 50)
 
 # =========================
 # Cleaning Logic (from old text_cleaner.py)
@@ -69,17 +72,18 @@ SECTION_TITLE_PATTERNS = [
     r"사업\s*범위", r"과업\s*범위", r"과업\s*내용", r"업무\s*범위",
     r"제안\s*요청\s*사항", r"제안\s*서\s*작성", r"제안서\s*작성",
     r"평가\s*기준", r"평가\s*방법", r"선정\s*기준", r"심사\s*기준",
-    r"제출\s*서류", r"입찰\s*참가", r"입찰\s*방법", r"계약\s*조건",
+    r"제출\s*서류", r"입찰\s*참가", r"입찰\s*참가\s*자격", r"입찰\s*방법", r"계약\s*조건",
     r"일정", r"추진\s*일정", r"수행\s*일정",
     r"유의\s*사항", r"기타\s*사항", r"참고\s*사항",
     r"질의\s*응답", r"문의처",
+    r"소요\s*예산", r"예산", r"사업비", r"추정\s*가격"
 ]
 SECTION_TITLE_RE = re.compile(
-    r"^(?:#+\s*)?(?P<title>(" + "|".join(SECTION_TITLE_PATTERNS) + r"))\s*$"
+    r"^(?:#+\s*)?(?P<title>(" + "|".join(SECTION_TITLE_PATTERNS) + r"))\s*.*$"
 )
 CLAUSE_RE = re.compile(r"^(?P<key>제\s*\d+\s*조)\b.*$")
 NUMBERED_RE = re.compile(
-    r"^(?P<key>(?:\(?\d+\)?[.)]|(?:\d+\s*-\s*\d+)|[①②③④⑤⑥⑦⑧⑨⑩]))\s+.*$"
+    r"^(?:#+\s*)?(?P<key>(?:(?:\d+(?:\.\d+)+[.)]?)|(?:\(?\d+\)?[.)])|(?:\d+\s*-\s*\d+)|[①②③④⑤⑥⑦⑧⑨⑩]))\s+.*$"
 )
 APPENDIX_RE = re.compile(r"^(?P<key>(?:부록|별첨|첨부|붙임))\b.*$")
 
