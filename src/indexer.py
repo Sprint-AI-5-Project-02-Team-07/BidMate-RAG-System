@@ -7,19 +7,22 @@ def build_vector_db(docs, config):
     embeddings = OpenAIEmbeddings(model=config['model']['embedding'])
     db_path = config['path']['vector_db']
 
-    # 텍스트 분할
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=config['process']['chunk_size'],
-        chunk_overlap=config['process']['chunk_overlap']
+    # DB 구축 (Batch processing with progress bar)
+    # 기존 DB가 있으면 로드, 없으면 생성
+    vectorstore = Chroma(
+        persist_directory=db_path,
+        embedding_function=embeddings
     )
-    splits = text_splitter.split_documents(docs)
-
-    # DB 구축 및 로드 (v1.0의 persistent 방식)
-    vectorstore = Chroma.from_documents(
-        documents=splits,
-        embedding=embeddings,
-        persist_directory=db_path
-    )
+    
+    from tqdm import tqdm
+    
+    batch_size = 100
+    print(f"[Indexer] Total chunks to index: {len(docs)}")
+    
+    for i in tqdm(range(0, len(docs), batch_size), desc="Indexing"):
+        batch = docs[i : i + batch_size]
+        vectorstore.add_documents(batch)
+        
     return vectorstore
 
 def load_vector_db(config):
