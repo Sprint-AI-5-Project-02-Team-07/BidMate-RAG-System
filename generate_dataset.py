@@ -48,7 +48,7 @@ async def generate_qa_dataset_async():
     scenario = config.get('scenario', 'B')
     if scenario == "A":
         llm = ChatOpenAI(
-            model="google/gemma-2-9b-it",
+            model=config['model']['local_llm'],
             base_url="http://localhost:32000/v1",
             api_key="EMPTY",
             temperature=0.7

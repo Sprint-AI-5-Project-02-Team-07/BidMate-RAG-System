@@ -29,7 +29,7 @@ def get_advanced_retriever(vectorstore, config):
     
     if scenario == "A":
         llm = ChatOpenAI(
-            model="google/gemma-2-9b-it",
+            model=config['model']['local_llm'],
             base_url="http://localhost:32000/v1",
             api_key="EMPTY",
             temperature=0

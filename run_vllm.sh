@@ -2,7 +2,7 @@
 # run_vllm.sh
 # Run this on GCP VM to start the vLLM server for Scenario A.
 
-MODEL="google/gemma-2-9b-it"
+MODEL=$(uv run python -c "import yaml; print(yaml.safe_load(open('config/config.yaml'))['model']['local_llm'])")
 
 echo "Starting vLLM server with model: $MODEL"
 echo "Ensure you have GPU enabled and 'vllm' installed."

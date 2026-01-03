@@ -26,7 +26,7 @@ def create_bidmate_chain(retriever, config):
     if scenario == "A":
         # vLLM Server (GCP)
         llm = ChatOpenAI(
-            model="google/gemma-2-9b-it",
+            model=config['model']['local_llm'],
             base_url="http://localhost:32000/v1",
             api_key="EMPTY",
             temperature=config['model']['temperature']
