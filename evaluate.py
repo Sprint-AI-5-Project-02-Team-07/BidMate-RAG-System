@@ -128,7 +128,7 @@ async def evaluate_async(config_path, data_path, output_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config/config.yaml")
-    parser.add_argument("--data", default="data/evaluation_sample.json")
+    parser.add_argument("--data", default="data/eval_set_100.json")
     parser.add_argument("--output", default="evaluation_result.csv")
     args = parser.parse_args()
     
