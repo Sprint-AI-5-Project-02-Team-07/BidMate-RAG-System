@@ -76,9 +76,9 @@ def get_advanced_retriever(vectorstore, config):
         chroma_filter = create_chroma_filter(inputs)
         
         today = datetime.date.today().isoformat()
-        print(f"\n[Query Analysis] (Today: {today})")
-        print(f" - 검색어: '{inputs.query}'")
-        print(f" - 필터: {chroma_filter}")
+        # print(f"\n[Query Analysis] (Today: {today})")
+        # print(f" - 검색어: '{inputs.query}'")
+        # print(f" - 필터: {chroma_filter}")
 
         
         # 1. Semantic Search (Fetch Candidates)
@@ -146,12 +146,12 @@ def get_advanced_retriever(vectorstore, config):
         reranked_results.sort(key=lambda x: x['score'], reverse=True)
         
         # Debug Output
-        print(f" [Reranking] Top 3 (of {len(reranked_results)} candidates):")
-        for i in range(min(3, len(reranked_results))):
-            item = reranked_results[i]
-            # Safe print for Windows consoles
-            safe_content = item['doc'].page_content[:30].encode('utf-8', 'replace').decode('utf-8')
-            print(f"  {i+1}. Score={item['score']:.4f} (Sem={item['sem_score']:.2f}, BM25={item['bm25_score']:.2f}) | {safe_content}...")
+        # print(f" [Reranking] Top 3 (of {len(reranked_results)} candidates):")
+        # for i in range(min(3, len(reranked_results))):
+        #     item = reranked_results[i]
+        #     # Safe print for Windows consoles
+        #     safe_content = item['doc'].page_content[:30].encode('utf-8', 'replace').decode('utf-8')
+        #     # print(f"  {i+1}. Score={item['score']:.4f} (Sem={item['sem_score']:.2f}, BM25={item['bm25_score']:.2f}) | {safe_content}...")
 
         # Return just the docs
         final_docs = [item['doc'] for item in reranked_results[:final_k]]
