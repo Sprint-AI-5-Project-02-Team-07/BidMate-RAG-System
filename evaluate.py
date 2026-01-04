@@ -79,7 +79,16 @@ async def evaluate_async(config_path, data_path, output_path):
     chain = create_bidmate_chain(retriever, config)
     
     # 2. Judge Setup
-    judge_llm = ChatOpenAI(model="gpt-5-mini", temperature=0)
+    scenario = config.get('scenario', 'B')
+    if scenario == "A":
+        judge_llm = ChatOpenAI(
+            model=config['model']['local_llm'],
+            base_url="http://localhost:32000/v1",
+            api_key="EMPTY",
+            temperature=0
+        )
+    else:
+        judge_llm = ChatOpenAI(model=config['model']['llm'], temperature=0)
     judge_template = """
     You are an impartial judge evaluating a RAG system.
     
