@@ -16,49 +16,48 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-async def process_item(item, chain, judge_chain, semaphore):
-    async with semaphore:
-        q = item['question']
-        gt = item.get('ground_truth', "N/A")
+async def process_item(item, chain, judge_chain):
+    q = item['question']
+    gt = item.get('ground_truth', "N/A")
+    
+    try:
+        # Inference (Async call but waited sequentially)
+        session_id = f"eval_{hash(q)}"
+        resp = await chain.ainvoke(
+            {"input": q},
+            config={"configurable": {"session_id": session_id}}
+        )
+        # LCEL chain returns string (AIMessage content or str parser output)
+        prediction = resp 
         
-        try:
-            # Inference (Async)
-            session_id = f"eval_{hash(q)}"
-            resp = await chain.ainvoke(
-                {"input": q},
-                config={"configurable": {"session_id": session_id}}
-            )
-            # LCEL chain returns string (AIMessage content or str parser output)
-            prediction = resp 
-            
-            # Judge (Async)
-            eval_res = await judge_chain.ainvoke({
-                "question": q,
-                "ground_truth": gt,
-                "prediction": prediction
-            })
-            
-            eval_res = eval_res.strip()
-            if eval_res.startswith("```json"):
-                eval_res = eval_res[7:-3]
-            
-            eval_json = json.loads(eval_res)
-            score = eval_json.get("score", 0)
-            reason = eval_json.get("reason", "")
-            
-        except Exception as e:
-            # print(f"Error evaluating '{q}': {e}")
-            prediction = "Error"
-            score = 0
-            reason = str(e)
-            
-        return {
+        # Judge (Async call but waited sequentially)
+        eval_res = await judge_chain.ainvoke({
             "question": q,
             "ground_truth": gt,
-            "prediction": prediction,
-            "score": score,
-            "reason": reason
-        }
+            "prediction": prediction
+        })
+        
+        eval_res = eval_res.strip()
+        if eval_res.startswith("```json"):
+            eval_res = eval_res[7:-3]
+        
+        eval_json = json.loads(eval_res)
+        score = eval_json.get("score", 0)
+        reason = eval_json.get("reason", "")
+        
+    except Exception as e:
+        # print(f"Error evaluating '{q}': {e}")
+        prediction = "Error"
+        score = 0
+        reason = str(e)
+        
+    return {
+        "question": q,
+        "ground_truth": gt,
+        "prediction": prediction,
+        "score": score,
+        "reason": reason
+    }
 
 async def evaluate_async(config_path, data_path, output_path):
     # 1. Config & Chain Setup
@@ -101,13 +100,13 @@ async def evaluate_async(config_path, data_path, output_path):
     with open(data_path, "r", encoding="utf-8") as f:
         test_set = json.load(f)
         
-    print(f"Starting async evaluation on {len(test_set)} items...")
+    print(f"Starting sequential evaluation on {len(test_set)} items...")
     
-    # Semaphore for concurrency
-    semaphore = asyncio.Semaphore(20)
-    
-    tasks = [process_item(item, chain, judge_chain, semaphore) for item in test_set]
-    results = await tqdm_asyncio.gather(*tasks)
+    # [Optimization] Sequential Loop (One by One) for stability
+    results = []
+    for item in tqdm_asyncio(test_set):
+        res = await process_item(item, chain, judge_chain)
+        results.append(res)
     
     # 4. Save
     df = pd.DataFrame(results)
