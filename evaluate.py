@@ -21,6 +21,7 @@ async def process_item(item, chain, judge_chain):
     gt = item.get('ground_truth', "N/A")
     
     try:
+        print(f" [DEBUG] Inference Check: {q[:10]}...") 
         # Inference (Async call but waited sequentially)
         session_id = f"eval_{hash(q)}"
         resp = await chain.ainvoke(
@@ -29,13 +30,16 @@ async def process_item(item, chain, judge_chain):
         )
         # LCEL chain returns string (AIMessage content or str parser output)
         prediction = resp 
+        print(f" [DEBUG] Inference Done. Prediction len: {len(str(prediction))}")
         
         # Judge (Async call but waited sequentially)
+        print(f" [DEBUG] Judge Check (OpenAI)...")
         eval_res = await judge_chain.ainvoke({
             "question": q,
             "ground_truth": gt,
             "prediction": prediction
         })
+        print(f" [DEBUG] Judge Done.")
         
         eval_res = eval_res.strip()
         if eval_res.startswith("```json"):
@@ -46,7 +50,7 @@ async def process_item(item, chain, judge_chain):
         reason = eval_json.get("reason", "")
         
     except Exception as e:
-        # print(f"Error evaluating '{q}': {e}")
+        print(f" [ERROR] Failed evaluating '{q[:10]}...': {e}")
         prediction = "Error"
         score = 0
         reason = str(e)
