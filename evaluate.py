@@ -63,7 +63,7 @@ async def process_item(item, chain, judge_chain):
         "reason": reason
     }
 
-async def evaluate_async(config_path, data_path, output_path):
+async def evaluate_async(config_path, data_path, output_path, limit=None):
     # 1. Config & Chain Setup
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
@@ -103,6 +103,10 @@ async def evaluate_async(config_path, data_path, output_path):
     # 3. Load Data
     with open(data_path, "r", encoding="utf-8") as f:
         test_set = json.load(f)
+
+    if limit:
+        test_set = test_set[:limit]
+        print(f" [Quick Mode] Limiting evaluation to first {limit} items.")
         
     print(f"Starting sequential evaluation on {len(test_set)} items...")
     
@@ -125,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="config/config.yaml")
     parser.add_argument("--data", default="data/eval_set_100.json")
     parser.add_argument("--output", default="evaluation_result.csv")
+    parser.add_argument("--limit", type=int, default=None, help="Limit number of items to evaluate")
     args = parser.parse_args()
     
-    asyncio.run(evaluate_async(args.config, args.data, args.output))
+    asyncio.run(evaluate_async(args.config, args.data, args.output, args.limit))
