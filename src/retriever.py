@@ -43,6 +43,10 @@ def get_advanced_retriever(vectorstore, config):
     llm = llm.with_structured_output(SearchQuery)
 
     def create_chroma_filter(search_query: SearchQuery):
+        # [Scenario A] 로컬 모델의 Hallucination 방지를 위해 필터링 비활성화
+        if config.get("scenario") == "A":
+            return None
+
         filters = []
         
         # [변경] 기관명 필터 제거 (유저 질의와 DB 메타데이터 간 정확한 일치가 어려워 검색 누락 발생)
