@@ -24,4 +24,5 @@ api = [
 ]
 gcp = [
     "vllm>=0.13.0",
+    "sentence-transformers>=5.2.0",
 ]
