@@ -21,10 +21,22 @@ def format_docs(docs):
     )
 
 def create_bidmate_chain(retriever, config):
-    llm = ChatOpenAI(
-        model=config['model']['llm'],
-        temperature=config['model']['temperature']
-    )
+    scenario = config.get('scenario', 'B')
+    
+    if scenario == "A":
+        # vLLM Server (GCP)
+        llm = ChatOpenAI(
+            model=config['model']['local_llm'],
+            base_url="http://localhost:32000/v1",
+            api_key="EMPTY",
+            temperature=config['model']['temperature']
+        )
+    else:
+        # OpenAI API (Default)
+        llm = ChatOpenAI(
+            model=config['model']['llm'],
+            temperature=config['model']['temperature']
+        )
 
     # 1. Contextualize Question (History + Question -> Standalone Question)
     condense_system_prompt = (

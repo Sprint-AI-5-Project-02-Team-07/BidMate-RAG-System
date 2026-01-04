@@ -16,51 +16,54 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-async def process_item(item, chain, judge_chain, semaphore):
-    async with semaphore:
-        q = item['question']
-        gt = item.get('ground_truth', "N/A")
+async def process_item(item, chain, judge_chain):
+    q = item['question']
+    gt = item.get('ground_truth', "N/A")
+    
+    try:
+        print(f" [DEBUG] Inference Check: {q[:10]}...") 
+        # Inference (Async call but waited sequentially)
+        session_id = f"eval_{hash(q)}"
+        resp = await chain.ainvoke(
+            {"input": q},
+            config={"configurable": {"session_id": session_id}}
+        )
+        # LCEL chain returns string (AIMessage content or str parser output)
+        prediction = resp 
+        print(f" [DEBUG] Inference Done. Prediction len: {len(str(prediction))}")
         
-        try:
-            # Inference (Async)
-            session_id = f"eval_{hash(q)}"
-            resp = await chain.ainvoke(
-                {"input": q},
-                config={"configurable": {"session_id": session_id}}
-            )
-            # LCEL chain returns string (AIMessage content or str parser output)
-            prediction = resp 
-            
-            # Judge (Async)
-            eval_res = await judge_chain.ainvoke({
-                "question": q,
-                "ground_truth": gt,
-                "prediction": prediction
-            })
-            
-            eval_res = eval_res.strip()
-            if eval_res.startswith("```json"):
-                eval_res = eval_res[7:-3]
-            
-            eval_json = json.loads(eval_res)
-            score = eval_json.get("score", 0)
-            reason = eval_json.get("reason", "")
-            
-        except Exception as e:
-            # print(f"Error evaluating '{q}': {e}")
-            prediction = "Error"
-            score = 0
-            reason = str(e)
-            
-        return {
+        # Judge (Async call but waited sequentially)
+        print(f" [DEBUG] Judge Check (OpenAI)...")
+        eval_res = await judge_chain.ainvoke({
             "question": q,
             "ground_truth": gt,
-            "prediction": prediction,
-            "score": score,
-            "reason": reason
-        }
+            "prediction": prediction
+        })
+        print(f" [DEBUG] Judge Done.")
+        
+        eval_res = eval_res.strip()
+        if eval_res.startswith("```json"):
+            eval_res = eval_res[7:-3]
+        
+        eval_json = json.loads(eval_res)
+        score = eval_json.get("score", 0)
+        reason = eval_json.get("reason", "")
+        
+    except Exception as e:
+        print(f" [ERROR] Failed evaluating '{q[:10]}...': {e}")
+        prediction = "Error"
+        score = 0
+        reason = str(e)
+        
+    return {
+        "question": q,
+        "ground_truth": gt,
+        "prediction": prediction,
+        "score": score,
+        "reason": reason
+    }
 
-async def evaluate_async(config_path, data_path, output_path):
+async def evaluate_async(config_path, data_path, output_path, limit=None):
     # 1. Config & Chain Setup
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
@@ -79,7 +82,8 @@ async def evaluate_async(config_path, data_path, output_path):
     chain = create_bidmate_chain(retriever, config)
     
     # 2. Judge Setup
-    judge_llm = ChatOpenAI(model="gpt-5-mini", temperature=0)
+    # [Evaluation Fix] Always use high-performance model (OpenAI) for Judge, even in Scenario A.
+    judge_llm = ChatOpenAI(model=config['model']['llm'], temperature=0)
     judge_template = """
     You are an impartial judge evaluating a RAG system.
     
@@ -99,14 +103,18 @@ async def evaluate_async(config_path, data_path, output_path):
     # 3. Load Data
     with open(data_path, "r", encoding="utf-8") as f:
         test_set = json.load(f)
+
+    if limit:
+        test_set = test_set[:limit]
+        print(f" [Quick Mode] Limiting evaluation to first {limit} items.")
         
-    print(f"Starting async evaluation on {len(test_set)} items...")
+    print(f"Starting sequential evaluation on {len(test_set)} items...")
     
-    # Semaphore for concurrency
-    semaphore = asyncio.Semaphore(20)
-    
-    tasks = [process_item(item, chain, judge_chain, semaphore) for item in test_set]
-    results = await tqdm_asyncio.gather(*tasks)
+    # [Optimization] Sequential Loop (One by One) for stability
+    results = []
+    for item in tqdm_asyncio(test_set):
+        res = await process_item(item, chain, judge_chain)
+        results.append(res)
     
     # 4. Save
     df = pd.DataFrame(results)
@@ -119,8 +127,9 @@ async def evaluate_async(config_path, data_path, output_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config/config.yaml")
-    parser.add_argument("--data", default="data/evaluation_sample.json")
+    parser.add_argument("--data", default="data/eval_set_100.json")
     parser.add_argument("--output", default="evaluation_result.csv")
+    parser.add_argument("--limit", type=int, default=None, help="Limit number of items to evaluate")
     args = parser.parse_args()
     
-    asyncio.run(evaluate_async(args.config, args.data, args.output))
+    asyncio.run(evaluate_async(args.config, args.data, args.output, args.limit))

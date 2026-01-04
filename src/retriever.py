@@ -25,12 +25,28 @@ class SearchQuery(BaseModel):
     pub_date_after: Optional[str] = Field(None, description="이 날짜 이후에 공개된 사업 (YYYY-MM-DD)")
 
 def get_advanced_retriever(vectorstore, config):
-    llm = ChatOpenAI(
-        model=config['model']['llm'], 
-        temperature=0
-    ).with_structured_output(SearchQuery)
+    scenario = config.get('scenario', 'B')
+    
+    if scenario == "A":
+        llm = ChatOpenAI(
+            model=config['model']['local_llm'],
+            base_url="http://localhost:32000/v1",
+            api_key="EMPTY",
+            temperature=0
+        )
+    else:
+        llm = ChatOpenAI(
+            model=config['model']['llm'], 
+            temperature=0
+        )
+        
+    llm = llm.with_structured_output(SearchQuery)
 
     def create_chroma_filter(search_query: SearchQuery):
+        # [Scenario A] 로컬 모델의 Hallucination 방지를 위해 필터링 비활성화
+        if config.get("scenario") == "A":
+            return None
+
         filters = []
         
         # [변경] 기관명 필터 제거 (유저 질의와 DB 메타데이터 간 정확한 일치가 어려워 검색 누락 발생)
@@ -60,9 +76,9 @@ def get_advanced_retriever(vectorstore, config):
         chroma_filter = create_chroma_filter(inputs)
         
         today = datetime.date.today().isoformat()
-        print(f"\n[Query Analysis] (Today: {today})")
-        print(f" - 검색어: '{inputs.query}'")
-        print(f" - 필터: {chroma_filter}")
+        # print(f"\n[Query Analysis] (Today: {today})")
+        # print(f" - 검색어: '{inputs.query}'")
+        # print(f" - 필터: {chroma_filter}")
 
         
         # 1. Semantic Search (Fetch Candidates)
@@ -130,12 +146,12 @@ def get_advanced_retriever(vectorstore, config):
         reranked_results.sort(key=lambda x: x['score'], reverse=True)
         
         # Debug Output
-        print(f" [Reranking] Top 3 (of {len(reranked_results)} candidates):")
-        for i in range(min(3, len(reranked_results))):
-            item = reranked_results[i]
-            # Safe print for Windows consoles
-            safe_content = item['doc'].page_content[:30].encode('utf-8', 'replace').decode('utf-8')
-            print(f"  {i+1}. Score={item['score']:.4f} (Sem={item['sem_score']:.2f}, BM25={item['bm25_score']:.2f}) | {safe_content}...")
+        # print(f" [Reranking] Top 3 (of {len(reranked_results)} candidates):")
+        # for i in range(min(3, len(reranked_results))):
+        #     item = reranked_results[i]
+        #     # Safe print for Windows consoles
+        #     safe_content = item['doc'].page_content[:30].encode('utf-8', 'replace').decode('utf-8')
+        #     # print(f"  {i+1}. Score={item['score']:.4f} (Sem={item['sem_score']:.2f}, BM25={item['bm25_score']:.2f}) | {safe_content}...")
 
         # Return just the docs
         final_docs = [item['doc'] for item in reranked_results[:final_k]]
