@@ -109,14 +109,12 @@ python evaluate.py --data data/eval_set_100.json --output evaluation_result.csv
 
 ### 👥 Team Members
 
-| Team Member | Role | Work Log |
+| Name | Role | Collaboration Log |
 | :--- | :--- | :--- |
-| **주재홍** | **PM / Data Pipeline** | - |
-| **서준범** | **Model Engineering** | [Link](https://www.notion.so/Daily-2cae2cccbd88803eafabe85a695162f7?source=copy_link) |
+| **주재홍** | **PM / RAG & LLM Core Development** | - |
+| **서준범** | **System Integration & Scenario A Implementation** | [Link](https://www.notion.so/Daily-2cae2cccbd88803eafabe85a695162f7?source=copy_link) |
 | **전예린** | - | - |
 | **김장현** | - | - |
 
 ### 📄 Documentation
 - **Project Presentation**: [View PDF](https://drive.google.com/file/d/1W9RDTffGqoEwBWKtAqdaFv-int5G7tj1/view?usp=sharing)
-
-
