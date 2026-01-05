@@ -56,7 +56,7 @@ project-2/
 
 ## 🛠️ Setup & Installation
 
-**Prerequisites**: Python 3.10+, `uv` installed.
+**Prerequisites**: Python 3.11+, `uv` installed.
 
 1.  **Initialize & Sync**:
     ```bash
